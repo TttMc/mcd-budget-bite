@@ -57,6 +57,15 @@ python scripts/solve.py --budget 30 --kcal 800 --offline
 
 零第三方依赖，Python 3.9+ 即可。
 
+> 完整使用说明（含 WorkBuddy 对话用法、换门店、场景配方、常见问题）
+> 见 [使用教程.md](./使用教程.md)。
+
+不知道自己所在城市的门店编码？
+
+```bash
+python scripts/find_store.py 北京市 王府井
+```
+
 ### 参数
 
 | 参数 | 默认 | 说明 |
