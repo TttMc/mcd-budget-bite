@@ -5,7 +5,7 @@
 基于 [麦当劳中国 MCP](https://github.com/M-China/mcd-mcp-server) 开发的点餐决策 Skill。
 在**预算上限**与**热量上限**双重约束下枚举全部可行组合，输出三套方案、热量贴士与性价比天梯榜。
 
-**[👉 在线 Demo · 拖动滑块直接玩](https://ttmc.github.io/mcd-budget-bite/)** ｜ [离线单文件版](./docs/index.html)（下载后双击打开，不联网也能用）
+**[👉 在线 Demo · 拖动滑块直接玩](https://tttmc.github.io/mcd-budget-bite/)** ｜ [离线单文件版](./docs/index.html)（下载后双击打开，不联网也能用）
 
 ---
 

@@ -72,6 +72,27 @@
 | `scripts/solve.py` | 双约束求解器（全枚举 + 帕累托筛选 + 天梯榜） |
 | `data/*.json` | 菜单、营养、套餐拆解缓存 |
 
+### 6. 在线 Demo（WorkBuddy 生成，2026-10-10 14:20）
+
+为便于传播与核验，在 WorkBuddy 中生成了一个零依赖的前端 Demo：
+
+| 文件 | 说明 |
+|---|---|
+| `docs/index.html` | 单文件页面，数据内联，双击即可打开；也可 GitHub Pages 在线访问 |
+| `docs/template.html` | 页面模板，含 `/*__DATA__*/{}` 占位符 |
+| `docs/demo_data.json` | 候选集快照，由求解器导出 |
+| `scripts/export_demo_data.py` | 复用 solve.py 的候选构建逻辑导出快照 |
+| `scripts/build_demo.py` | 把快照注入模板，产出 index.html |
+| `scripts/verify_demo.js` | 前端与 Python 求解器的一致性对拍 |
+
+页面内的 JavaScript 求解器按与 Python 完全相同的规则实现（同款主食关键词、
+同款三套方案选取逻辑、同款天梯榜口径）。为避免「demo 是一套、脚本是另一套」，
+WorkBuddy 编写了 `verify_demo.js`：在 Node 里用最小 DOM 桩执行页面真实脚本，
+解析渲染结果与命令行输出逐项比对。已验证 6 个场景（¥20/500 至 ¥50/1400）
+三套方案的价格与热量全部相同，另含极端无解场景的空状态。
+
+在线地址：https://tttmc.github.io/mcd-budget-bite/ （GitHub Pages，从 `/docs` 部署）
+
 ## 三、验证结果
 
 在三个预算场景下实际运行通过：
@@ -104,6 +125,12 @@
 
 三次调用均走真实 MCP 链路（门店 `1450104` 上海黄浦悦荟广场餐厅），
 并各自附带热量贴士与性价比天梯榜。
+
+**问题 D：门店数据串号（ demo 阶段发现）**
+菜单与套餐详情原本共用一个缓存文件。查过北京门店后，上海门店的离线读取会
+静默拿到北京数据——两者差异极小（麦香鸡沪 ¥17 / 京 ¥16.5），肉眼几乎不可察。
+→ 改为按门店隔离的 `raw_meals_<code>.json` / `meal_details_<code>.json`，
+并在缓存内写入来源门店标记，离线读取时校验，不一致直接报错而非给出错误答案。
 
 ### 已发现并如实记录的局限
 
