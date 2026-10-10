@@ -5,6 +5,26 @@
 基于 [麦当劳中国 MCP](https://github.com/M-China/mcd-mcp-server) 开发的点餐决策 Skill。
 在**预算上限**与**热量上限**双重约束下枚举全部可行组合，输出三套方案、热量贴士与性价比天梯榜。
 
+**[👉 在线 Demo · 拖动滑块直接玩](https://ttmc.github.io/mcd-budget-bite/)** ｜ [离线单文件版](./docs/index.html)（下载后双击打开，不联网也能用）
+
+---
+
+## 先玩一下
+
+`docs/index.html` 是一个**零依赖单文件页面**——全部数据内联，不需要起服务、不需要 Token、不联网、不下单。
+
+浏览器打开后拖动「预算」和「热量」两个滑块，三套方案和天梯榜实时重算。页面里的求解逻辑与命令行版**逐项对拍过**（见 `scripts/verify_demo.js`，6 个场景全一致），不是另一套近似实现。
+
+数据来自麦当劳 MCP 的真实抓取快照（上海门店 `1450104`，2026-10-10）。
+
+```bash
+# 直接打开
+python -m http.server 8000   # 然后访问 http://localhost:8000/docs/
+# 或者直接双击 docs/index.html，效果完全一样
+```
+
+Regenerating：`python scripts/export_demo_data.py --offline && python scripts/build_demo.py`
+
 ---
 
 ## 为什么是它
@@ -184,16 +204,29 @@ mcd-budget-bite/
 ├── CONTEST_DECLARATION.md       # 参赛声明（官方模板，未改动）
 ├── mcp-config.example.json      # 脱敏配置示例
 ├── workbuddy.md                 # WorkBuddy 开发上下文
+├── docs/
+│   ├── index.html               # 在线 Demo 单文件页（数据内联，双击即用）
+│   ├── template.html            # Demo 模板（含占位符，供 build_demo 注入）
+│   └── demo_data.json           # Demo 用的候选集快照
 ├── scripts/
 │   ├── mcp_client.py            # MCP Streamable HTTP 客户端（零依赖）
 │   ├── solve.py                 # 双约束求解器
 │   ├── find_store.py            # 门店编码查询
+│   ├── export_demo_data.py      # 导出候选集 → docs/demo_data.json
+│   ├── build_demo.py            # 把数据注入模板 → docs/index.html
+│   ├── verify_demo.js           # 前端与求解器的一致性对拍（Node 运行）
 │   └── .env                     # Token（已在 .gitignore 中，不提交）
 └── data/
-    ├── raw_meals.json           # 菜单缓存
-    ├── raw_nutrition.json       # 营养数据缓存
-    └── meal_details.json        # 套餐拆解缓存
+    ├── raw_meals_<门店编码>.json      # 菜单缓存（按门店隔离）
+    ├── meal_details_<门店编码>.json   # 套餐拆解缓存（按门店隔离）
+    └── raw_nutrition.json             # 营养数据缓存（全国通用）
 ```
+
+> **为什么缓存要按门店拆文件？**
+> 菜单价格和套餐结构都是门店维度的（例如麦香鸡上海 ¥17 / 北京 ¥16.5）。
+> 早期版本共用单个缓存文件，查过 A 店后再查 B 店会**静默读到 A 的数据**——
+> 价格差只有几毛到 1 元，极难察觉。现在每个门店独立文件，且缓存里写入了
+> 来源门店标记，离线读取时会校验，不一致直接报错而不是给出错误答案。
 
 ---
 

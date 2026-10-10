@@ -24,9 +24,20 @@ from mcp_client import call_tool  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "data")
-MEALS_CACHE = os.path.join(DATA, "raw_meals.json")
+
+# 菜单与套餐详情都带门店维度价格，缓存必须按门店隔离。
+# 共用单文件会导致：查过 A 店后离线/再查 B 店时读到 A 的数据却不报错，
+# 而价格差异可能只有几毛到 1 元，极易被忽略（如麦香鸡沪 ¥17 / 京 ¥16.5）。
+# 营养库是全国统一的，与门店无关，不需要隔离。
 NUT_CACHE = os.path.join(DATA, "raw_nutrition.json")
-DETAIL_CACHE = os.path.join(DATA, "meal_details.json")
+
+
+def meals_cache(store: str) -> str:
+    return os.path.join(DATA, f"raw_meals_{store}.json")
+
+
+def details_cache(store: str) -> str:
+    return os.path.join(DATA, f"meal_details_{store}.json")
 
 # 非食品（周边玩具 / 包装物等），直接从候选池剔除
 NON_FOOD_KEYWORDS = ("按摩捶", "痒痒挠", "贴纸", "周边", "玩具", "徽章", "公仔",
@@ -48,13 +59,22 @@ DAILY_SODIUM_REF = 2000  # 成人日均钠推荐上限（mg），用于贴士文
 
 def load_meals(store: str, offline: bool) -> dict:
     """返回 {code: {name, price, originalPrice, category}}"""
-    if offline and os.path.exists(MEALS_CACHE):
-        raw = json.load(open(MEALS_CACHE, encoding="utf-8"))
+    cache_path = meals_cache(store)
+    if offline and os.path.exists(cache_path):
+        raw = json.load(open(cache_path, encoding="utf-8"))
     else:
         raw = call_tool("query-meals", {"storeCode": store, "orderType": 1, "beType": 1})
         if not raw.get("success"):
             raise SystemExit(f"拉取菜单失败: {raw.get('message')}")
-        json.dump(raw, open(MEALS_CACHE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        raw["storeCode"] = store  # 写入来源门店，供离线时校验
+        json.dump(raw, open(cache_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+    # 离线时校验缓存来源，避免门店数据串号
+    if raw.get("storeCode") and raw["storeCode"] != store:
+        raise SystemExit(
+            f"菜单缓存来自门店 {raw['storeCode']}，与本次请求的 {store} 不一致。"
+            f"请去掉 --offline 重新拉取。"
+        )
 
     data = raw["data"]
     meals = {}
@@ -111,14 +131,15 @@ def load_nutrition(offline: bool) -> dict:
     return out
 
 
-def load_details() -> dict:
-    if os.path.exists(DETAIL_CACHE):
-        return json.load(open(DETAIL_CACHE, encoding="utf-8"))
+def load_details(store: str) -> dict:
+    path = details_cache(store)
+    if os.path.exists(path):
+        return json.load(open(path, encoding="utf-8"))
     return {}
 
 
-def save_details(d: dict) -> None:
-    json.dump(d, open(DETAIL_CACHE, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+def save_details(d: dict, store: str) -> None:
+    json.dump(d, open(details_cache(store), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
 # --------------------------------------------------------------------------
@@ -215,7 +236,7 @@ def build_candidates(meals: dict, nut: dict, store: str, offline: bool,
          杯型未指定的单品如「可乐」也走这条，自动解析出「可乐小杯」）
       3. 仍取不到 —— 记为缺失并排除，不做估算
     """
-    cache = load_details()
+    cache = load_details(store)
     cands, dropped = [], []
     for code, m in meals.items():
         name = m["name"]
@@ -235,7 +256,7 @@ def build_candidates(meals: dict, nut: dict, store: str, offline: bool,
         cands.append({"code": code, "name": name, "price": m["price"],
                       "category": m.get("category", ""), "source": source, **n})
     if not offline:
-        save_details(cache)
+        save_details(cache, store)
     return cands, dropped
 
 
