@@ -160,13 +160,17 @@ python scripts/find_store.py 北京市 王府井
 ```
 mcd-budget-bite/
 ├── SKILL.md                     # Skill 定义（触发条件与工作流）
+├── README.md                    # 项目介绍
+├── 使用教程.md                   # 完整使用说明
 ├── MCP_INTEGRATION.md           # MCP 接入说明
 ├── CONTEST_DECLARATION.md       # 参赛声明（官方模板，未改动）
 ├── mcp-config.example.json      # 脱敏配置示例
 ├── workbuddy.md                 # WorkBuddy 开发上下文
 ├── scripts/
 │   ├── mcp_client.py            # MCP Streamable HTTP 客户端（零依赖）
-│   └── solve.py                 # 双约束求解器
+│   ├── solve.py                 # 双约束求解器
+│   ├── find_store.py            # 门店编码查询
+│   └── .env                     # Token（已在 .gitignore 中，不提交）
 └── data/
     ├── raw_meals.json           # 菜单缓存
     ├── raw_nutrition.json       # 营养数据缓存
