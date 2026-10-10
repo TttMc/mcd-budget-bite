@@ -30,7 +30,25 @@
 
 ---
 
-## 快速开始
+## 在 WorkBuddy 里直接用（推荐）
+
+本项目同时是一个 **WorkBuddy Skill**。装好后不用敲命令，在对话里说人话就行：
+
+```
+30 块能吃啥麦当劳
+预算 25，热量别超 700，帮我配一顿
+我在减脂，今晚想吃麦当劳
+换成北京王府井
+```
+
+Skill 会自动识别意图、补齐没说的参数（热量默认 800 kcal）、调用麦当劳 MCP、回传三套方案。
+
+安装：把仓库放进 WorkBuddy 的 Skill 目录 `~/.workbuddy/skills/mcd-budget-bite/`，重启 WorkBuddy 即可。
+开发过程与对话实测记录见 [workbuddy.md](./workbuddy.md)。
+
+---
+
+## 快速开始（命令行）
 
 ### 1. 申请 MCP Token
 
