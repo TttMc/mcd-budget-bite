@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import sys
+import unicodedata
 from itertools import combinations
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -146,17 +147,39 @@ def save_details(d: dict, store: str) -> None:
 # 营养匹配
 # --------------------------------------------------------------------------
 
-def match_nutrition(name: str, nut: dict):
-    """严格匹配：只认完全相等（忽略空格与常见符号）。
+def norm_name(s: str) -> str:
+    """名称归一化：NFKC + 去空白。
+
+    NFKC 把全角「（）１２Ａ」统一到半角「( ) 12 A」。门店菜单与营养库
+    的括号全半角并不统一（如「纯牛奶(盒装)」），不做归一化会直接漏配。
+    """
+    return unicodedata.normalize("NFKC", s).replace(" ", "").replace("\u3000", "")
+
+
+def build_nut_index(nut: dict) -> dict:
+    """预建归一化索引，避免每次匹配都全表扫描。
+
+    归一化后撞名的（营养库里不存在）保留先出现的一条，保证结果确定。
+    """
+    idx = {}
+    for k, v in nut.items():
+        idx.setdefault(norm_name(k), v)
+    return idx
+
+
+def match_nutrition(name: str, nut: dict, index: dict | None = None):
+    """严格匹配：只认归一化后完全相等。
 
     刻意不做模糊匹配——实测模糊匹配会把「巨无霸三件套」错配到「巨无霸」，
     而三件套还含薯条和可乐，热量差一倍以上。宁可标注缺失，也不能算错。
     """
-    key = name.replace(" ", "").replace("　", "")
+    if index is not None:
+        return index.get(norm_name(name))
+    key = norm_name(name)
     if key in nut:
         return nut[key]
     for k, v in nut.items():
-        if k.replace(" ", "") == key:
+        if norm_name(k) == key:
             return v
     return None
 
@@ -237,6 +260,7 @@ def build_candidates(meals: dict, nut: dict, store: str, offline: bool,
       3. 仍取不到 —— 记为缺失并排除，不做估算
     """
     cache = load_details(store)
+    index = build_nut_index(nut)
     cands, dropped = [], []
     for code, m in meals.items():
         name = m["name"]
@@ -245,7 +269,7 @@ def build_candidates(meals: dict, nut: dict, store: str, offline: bool,
         if is_combo(name) and not include_combos:
             continue
 
-        n = match_nutrition(name, nut)
+        n = match_nutrition(name, nut, index)
         source = "直接匹配"
         if n is None:
             n, _missing = combo_nutrition(code, store, nut, cache, offline)
